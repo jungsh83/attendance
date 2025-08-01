@@ -12,7 +12,7 @@ class Attendance:
         self.grade = [0] * 100
         self.names = [''] * 100
         self.wed = [0] * 100
-        self.weeken = [0] * 100
+        self.weekend = [0] * 100
 
     def input2(self, w, wk):
 
@@ -45,18 +45,18 @@ class Attendance:
         elif wk == "saturday":
             index = 5
             add_point += 2
-            self.weeken[id2] += 1
+            self.weekend[id2] += 1
         elif wk == "sunday":
             index = 6
             add_point += 2
-            self.weeken[id2] += 1
+            self.weekend[id2] += 1
 
         self.dat[id2][index] += 1
         self.points[id2] += add_point
 
-    def input_file(self):
-        try:
 
+    def read_attendance_weekday_500_file(self):
+        try:
             with open(Path(__file__).parent / "attendance_weekday_500.txt", encoding='utf-8') as f:
                 for _ in range(500):
                     line = f.readline()
@@ -68,6 +68,37 @@ class Attendance:
         except FileNotFoundError:
             print("파일을 찾을 수 없습니다.")
 
+    def input_file(self):
+        self.read_attendance_weekday_500_file()
+
+        self.calculate_points()
+
+        self.print_attendance_point_and_grade()
+
+        self.print_removed_player()
+
+    def print_removed_player(self):
+        print("\nRemoved player")
+        print("==============")
+        for i in range(1, self.id_cnt + 1):
+            if self.is_removed_player(i):
+                print(self.names[i])
+
+    def is_removed_player(self, i):
+        return self.grade[i] not in (1, 2) and self.wed[i] == 0 and self.weekend[i] == 0
+
+    def print_attendance_point_and_grade(self):
+        for i in range(1, self.id_cnt + 1):
+            print(f"NAME : {self.names[i]}, POINT : {self.points[i]}, GRADE : ", end="")
+
+            if self.grade[i] == 1:
+                print("GOLD")
+            elif self.grade[i] == 2:
+                print("SILVER")
+            else:
+                print("NORMAL")
+
+    def calculate_points(self):
         for i in range(1, self.id_cnt + 1):
             if self.dat[i][3] > 9:
                 self.points[i] += 10
@@ -80,21 +111,6 @@ class Attendance:
                 self.grade[i] = 2
             else:
                 self.grade[i] = 0
-
-            print(f"NAME : {self.names[i]}, POINT : {self.points[i]}, GRADE : ", end="")
-            if self.grade[i] == 1:
-                print("GOLD")
-            elif self.grade[i] == 2:
-                print("SILVER")
-            else:
-                print("NORMAL")
-
-        print("\nRemoved player")
-        print("==============")
-        for i in range(1, self.id_cnt + 1):
-            if self.grade[i] not in (1, 2) and self.wed[i] == 0 and self.weeken[i] == 0:
-                print(self.names[i])
-
 
 
 if __name__ == "__main__":
