@@ -5,15 +5,15 @@ import io
 import pytest
 
 
-from mission1.attendance import Attendance
+from mission1.attendance_manager import AttendanceManager
 
 def test_attendance():
     result_text = io.StringIO()
     original_stdout = sys.stdout
     sys.stdout = result_text
 
-    attendance = Attendance()
-    attendance.input_file()
+    attendance = AttendanceManager()
+    attendance.manage_attendance()
 
     assert result_text.getvalue() == """NAME : Umar, POINT : 48, GRADE : SILVER
 NAME : Daisy, POINT : 45, GRADE : SILVER
