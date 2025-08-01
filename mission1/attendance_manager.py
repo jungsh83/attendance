@@ -27,20 +27,7 @@ class AttendanceManager:
             return self.set_new_id(player_name)
         return self.ids[player_name]
 
-    def calculate_attendance_points(self, player_id: int, attendance_day: str) -> None:
-        attendance_day_index = self.get_day_index_of(attendance_day)
-        self.update_attendance_count_of_player_per_day(player_id, attendance_day_index)
-        self.points[player_id] += self.get_attendance_points_of(attendance_day_index)
-
-    def update_attendance_count_of_player_per_day(self, player_id: int, attendance_day_index: int) -> None:
-        self.attendance_count_of_player_per_day[player_id][attendance_day_index] += 1
-
-    def get_day_index_of(self, attendance_day: str) -> int:
-        if attendance_day not in DAY_INDEX.keys():
-            raise ValueError("올바르지 않은 요일명이 입력되었습니다.")
-        return DAY_INDEX[attendance_day]
-
-    def get_attendance_points_of(self, attendance_day_index: int) -> int:
+    def get_attendance_points(self, attendance_day_index: int) -> int:
         if attendance_day_index == WEDNESDAY:
             return 3
         elif self.is_weekend(attendance_day_index):
@@ -76,20 +63,28 @@ class AttendanceManager:
                 if len(parts) != 2:
                     raise ValueError("각 레코드는 '이름 요일' 형태로 입력되어야 합니다.")
                 records.append(parts)
-
         return records
 
     def manage_attendance(self):
-        for player_name, attendance_day in self.read_attendance_weekday_500_file():
-            self.calculate_attendance_points(self.get_player_id(player_name), attendance_day)
-
+        records = self.read_attendance_weekday_500_file()
+        self.count_attendance_of_the_day(records)
+        self.calculate_attendance_points(records)
         self.calculate_bonus_points_per_player()
-
         self.set_grade_per_player()
-
         self.print_attendance_points_and_grade_per_player()
-
         self.print_removed_player()
+
+    def count_attendance_of_the_day(self, records: List[List[str]]):
+        for player_name, attendance_day in records:
+            player_id = self.get_player_id(player_name)
+            attendance_day_index = DAY_INDEX[attendance_day]
+            self.attendance_count_of_player_per_day[player_id][attendance_day_index] += 1
+
+    def calculate_attendance_points(self, records: List[List[str]]):
+        for player_name, attendance_day in records:
+            player_id = self.get_player_id(player_name)
+            attendance_day_index = DAY_INDEX[attendance_day]
+            self.points[player_id] += self.get_attendance_points(attendance_day_index)
 
     def print_removed_player(self):
         print("\nRemoved player")
@@ -98,8 +93,8 @@ class AttendanceManager:
             if self.is_removed_player(player_id):
                 print(self.names[player_id])
 
-    def is_removed_player(self, player_id) -> bool:
-        if self.grade[player_id] in (1, 2):
+    def is_removed_player(self, player_id: int) -> bool:
+        if self.grade[player_id] in (GOLD, SILVER):
             return False
         if self.get_attendance_count_on_wednesday(player_id) > 0:
             return False
@@ -111,7 +106,7 @@ class AttendanceManager:
         for player_id in sorted(self.ids.values()):
             print(f"NAME : {self.names[player_id]}, POINT : {self.points[player_id]}, GRADE : {self.get_grade_name(player_id)}")
 
-    def get_grade_name(self, player_id):
+    def get_grade_name(self, player_id: int) -> str:
         return GRADE_NAME[self.grade[player_id]]
 
     def calculate_bonus_points_per_player(self):
@@ -121,21 +116,24 @@ class AttendanceManager:
             if self.get_attendance_count_on_weekend(player_id) >= BONUS_BASE_POINTS:
                 self.points[player_id] += BONUS_POINTS
 
-    def get_attendance_count_on_wednesday(self, player_id):
+    def get_attendance_count_on_wednesday(self, player_id: int) -> int:
         return self.attendance_count_of_player_per_day[player_id][WEDNESDAY]
 
-    def get_attendance_count_on_weekend(self, player_id):
+    def get_attendance_count_on_weekend(self, player_id: int) -> int:
         return self.attendance_count_of_player_per_day[player_id][SATURDAY] + \
             self.attendance_count_of_player_per_day[player_id][SUNDAY]
 
     def set_grade_per_player(self):
         for player_id in sorted(self.ids.values()):
-            if self.points[player_id] >= 50:
-                self.grade[player_id] = GOLD
-            elif self.points[player_id] >= 30:
-                self.grade[player_id] = SILVER
-            else:
-                self.grade[player_id] = NORMAL
+            self.grade[player_id] = self.get_grade(self.points[player_id])
+
+    def get_grade(self, point: int) -> int:
+        if point >= 50:
+            return GOLD
+        elif point >= 30:
+            return SILVER
+        return NORMAL
+
 
 if __name__ == "__main__":
     attendance = AttendanceManager()
